@@ -22,10 +22,7 @@ const createWeb3ContractsServices = (nodesUrls, contractDetailsMap) => {
         const web3 = new web3_1.default(url);
         const contracts = Object.entries(contractDetailsMap).reduce((map, [contractName, { abi, address }]) => {
             const contract = new web3.eth.Contract(abi, address);
-            return {
-                ...map,
-                [contractName]: contract,
-            };
+            return Object.assign(Object.assign({}, map), { [contractName]: contract });
         }, {});
         return {
             url,
@@ -45,7 +42,7 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
      * For load balancing round robin
      */
     let serviceIndex = initialServiceIndex;
-    const tempServicesStats = initialServicesStats.map((stats) => ({ ...stats }));
+    const tempServicesStats = initialServicesStats.map((stats) => (Object.assign({}, stats)));
     const servicesStats = tempServicesStats.length === contractsServices.length
         ? tempServicesStats
         : contractsServices.map(() => ({
@@ -80,7 +77,7 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
         }, 1000 * finalRetryOnRateLimitInSeconds);
     });
     const runContract = async (contractName, methodName, methodParameters, callParameters, options) => {
-        const retryIntervalInSeconds = options?.retryIntervalInSeconds || retryOnRateLimitInSeconds;
+        const retryIntervalInSeconds = (options === null || options === void 0 ? void 0 : options.retryIntervalInSeconds) || retryOnRateLimitInSeconds;
         const service = await getService(retryIntervalInSeconds);
         const contract = service.contracts[contractName];
         const runMethod = contract.methods[methodName];
