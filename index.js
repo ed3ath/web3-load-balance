@@ -78,6 +78,7 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
     });
     const runContract = async (contractName, methodName, methodParameters, callParameters, options) => {
         const retryIntervalInSeconds = (options === null || options === void 0 ? void 0 : options.retryIntervalInSeconds) || retryOnRateLimitInSeconds;
+        const onFailure = (options === null || options === void 0 ? void 0 : options.onFailure) || (() => true);
         const service = await getService(retryIntervalInSeconds);
         const contract = service.contracts[contractName];
         const runMethod = contract.methods[methodName];
@@ -90,8 +91,11 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
                 : { call: undefined };
             if (utils_1.isFunction(call)) {
                 return (callParameters ? call(callParameters) : call()).catch(async (error) => {
-                    if (!retryOnErrorDelayInMillis) {
-                        if (error instanceof Error) {
+                    if (error instanceof Error) {
+                        const isContinue = onFailure(error);
+                        if (!isContinue)
+                            return null;
+                        if (!retryOnErrorDelayInMillis) {
                             return Promise.reject(error);
                         }
                     }
@@ -103,14 +107,33 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
         return null;
     };
     const runWeb3 = async (callback, options) => {
-        const { retryOnRateLimitInSeconds: finalRetryOnRateLimitInSeconds = retryOnRateLimitInSeconds, } = options || {};
+        const { retryOnRateLimitInSeconds: finalRetryOnRateLimitInSeconds = retryOnRateLimitInSeconds, onFailure = () => true, } = options || {};
         const service = await getService(finalRetryOnRateLimitInSeconds);
-        return callback(service.web3);
+        return callback(service.web3).catch(async (error) => {
+            if (error instanceof Error) {
+                const isContinue = onFailure(error);
+                if (!isContinue)
+                    return null;
+                if (!retryOnErrorDelayInMillis) {
+                    return Promise.reject(error);
+                }
+            }
+            await utils_1.sleep(retryOnErrorDelayInMillis);
+            return runWeb3(callback, options);
+        });
     };
     const onContract = async (contractName, callback, options) => {
-        const { retryIntervalInSeconds: finalRetryIntervalInSeconds = retryOnRateLimitInSeconds, } = options || {};
+        const { retryIntervalInSeconds: finalRetryIntervalInSeconds = retryOnRateLimitInSeconds, onFailure = () => true, } = options || {};
         const service = await getService(finalRetryIntervalInSeconds);
-        return callback(service.contracts[contractName]).catch(async () => {
+        return callback(service.contracts[contractName]).catch(async (error) => {
+            if (error instanceof Error) {
+                const isContinue = onFailure(error);
+                if (!isContinue)
+                    return null;
+                if (!retryOnErrorDelayInMillis) {
+                    return Promise.reject(error);
+                }
+            }
             await utils_1.sleep(retryOnErrorDelayInMillis);
             return onContract(contractName, callback, options);
         });

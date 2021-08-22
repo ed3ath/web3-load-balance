@@ -45,6 +45,7 @@ export declare type LoadBalancedWeb3Service<ContractName extends string> = {
      */
     runContract: (contractName: ContractName, methodName: string, methodParameters?: any[], callParameters?: Record<string, any>, options?: {
         retryIntervalInSeconds?: number;
+        onFailure?: (error: Error) => boolean;
     }) => any;
     /**
      * `NOTE` Only do one (1) node request to take advantage of
@@ -58,7 +59,10 @@ export declare type LoadBalancedWeb3Service<ContractName extends string> = {
      * runWeb3((web3) => web3.eth.getBlock(12345678))
      * ```
      */
-    runWeb3: <T>(callback: (web3: Web3) => T) => Promise<T>;
+    runWeb3: <T>(callback: (web3: Web3) => Promise<T>, options?: {
+        retryOnRateLimitInSeconds?: number;
+        onFailure?: (error: Error) => boolean;
+    }) => Promise<T>;
     /**
      * `NOTE` Only do one (1) node request to take advantage of
      * load balancing.
@@ -93,7 +97,8 @@ export declare type LoadBalancedWeb3Service<ContractName extends string> = {
      */
     onContract: <T>(contractName: ContractName, callback: (contract: Contract) => Promise<T>, options?: {
         retryIntervalInSeconds?: number;
-    }) => Promise<T>;
+        onFailure?: (error: Error) => boolean;
+    }) => Promise<T | null>;
 };
 export declare const createWeb3ContractsServices: <ContractName extends string>(nodesUrls: string[], contractDetailsMap: Record<ContractName, ContractInfo>) => {
     url: string;

@@ -53,7 +53,10 @@ export type LoadBalancedWeb3Service<ContractName extends string> = {
 		methodName: string,
 		methodParameters?: any[],
 		callParameters?: Record<string, any>,
-		options?: { retryIntervalInSeconds?: number }
+		options?: {
+			retryIntervalInSeconds?: number
+			onFailure?: (error: Error) => boolean
+		}
 	) => any
 
 	/**
@@ -68,7 +71,13 @@ export type LoadBalancedWeb3Service<ContractName extends string> = {
 	 * runWeb3((web3) => web3.eth.getBlock(12345678))
 	 * ```
 	 */
-	runWeb3: <T>(callback: (web3: Web3) => T) => Promise<T>
+	runWeb3: <T>(
+		callback: (web3: Web3) => Promise<T>,
+		options?: {
+			retryOnRateLimitInSeconds?: number
+			onFailure?: (error: Error) => boolean
+		}
+	) => Promise<T>
 
 	/**
 	 * `NOTE` Only do one (1) node request to take advantage of
@@ -105,8 +114,11 @@ export type LoadBalancedWeb3Service<ContractName extends string> = {
 	onContract: <T>(
 		contractName: ContractName,
 		callback: (contract: Contract) => Promise<T>,
-		options?: { retryIntervalInSeconds?: number }
-	) => Promise<T>
+		options?: {
+			retryIntervalInSeconds?: number
+			onFailure?: (error: Error) => boolean
+		}
+	) => Promise<T | null>
 }
 
 export const createWeb3ContractsServices = <ContractName extends string>(
@@ -254,10 +266,15 @@ export const createLoadBalancedContractsService = <ContractName extends string>(
 		methodName: string,
 		methodParameters?: any[],
 		callParameters?: Record<string, any>,
-		options?: { retryIntervalInSeconds?: number }
+		options?: {
+			retryIntervalInSeconds?: number
+			onFailure?: (error: Error) => boolean
+		}
 	) => {
 		const retryIntervalInSeconds =
 			options?.retryIntervalInSeconds || retryOnRateLimitInSeconds
+
+		const onFailure = options?.onFailure || (() => true)
 
 		const service = await getService(retryIntervalInSeconds)
 
@@ -278,9 +295,13 @@ export const createLoadBalancedContractsService = <ContractName extends string>(
 			if (isFunction(call)) {
 				return (callParameters ? call(callParameters) : call()).catch(
 					async (error: any) => {
-						if (!retryOnErrorDelayInMillis) {
-							if (error instanceof Error) {
-								return Promise.reject(error)
+						if (error instanceof Error) {
+							const isContinue = onFailure(error)
+
+							if (!isContinue) return null
+
+							if (!retryOnErrorDelayInMillis) {
+								return Promise.reject<any>(error)
 							}
 						}
 
@@ -301,34 +322,66 @@ export const createLoadBalancedContractsService = <ContractName extends string>(
 		return null
 	}
 
-	const runWeb3 = async <T>(
-		callback: (web3: Web3) => T,
-		options?: { retryOnRateLimitInSeconds?: number }
+	const runWeb3: LoadBalancedWeb3Service<ContractName>["runWeb3"] = async <T>(
+		callback: (web3: Web3) => Promise<T>,
+		options?: {
+			retryOnRateLimitInSeconds?: number
+			onFailure?: (error: Error) => boolean
+		}
 	) => {
 		const {
 			retryOnRateLimitInSeconds:
 				finalRetryOnRateLimitInSeconds = retryOnRateLimitInSeconds,
+			onFailure = () => true,
 		} = options || {}
 
 		const service = await getService(finalRetryOnRateLimitInSeconds)
 
-		return callback(service.web3)
+		return callback(service.web3).catch(async (error) => {
+			if (error instanceof Error) {
+				const isContinue = onFailure(error)
+
+				if (!isContinue) return null
+
+				if (!retryOnErrorDelayInMillis) {
+					return Promise.reject<any>(error)
+				}
+			}
+
+			await sleep(retryOnErrorDelayInMillis)
+
+			return runWeb3(callback, options)
+		})
 	}
 
 	const onContract: LoadBalancedWeb3Service<ContractName>["onContract"] =
 		async <T>(
 			contractName: ContractName,
 			callback: (contract: Contract) => Promise<T>,
-			options?: { retryIntervalInSeconds?: number }
+			options?: {
+				retryIntervalInSeconds?: number
+				onFailure?: (error: Error) => boolean
+			}
 		) => {
 			const {
 				retryIntervalInSeconds:
 					finalRetryIntervalInSeconds = retryOnRateLimitInSeconds,
+				onFailure = () => true,
 			} = options || {}
 
 			const service = await getService(finalRetryIntervalInSeconds)
 
-			return callback(service.contracts[contractName]).catch(async () => {
+			return callback(service.contracts[contractName]).catch(async (error) => {
+				if (error instanceof Error) {
+					const isContinue = onFailure(error)
+
+					if (!isContinue) return null
+
+					if (!retryOnErrorDelayInMillis) {
+						return Promise.reject<any>(error)
+					}
+				}
+
 				await sleep(retryOnErrorDelayInMillis)
 
 				return onContract(contractName, callback, options)
