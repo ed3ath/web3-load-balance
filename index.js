@@ -76,6 +76,31 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
             }
         }, 1000 * finalRetryOnRateLimitInSeconds);
     });
+    /**
+     * `NOTE` Only do one (1) node request to take advantage of
+     * load balancing.
+     *
+     * Example of old `web3` convention. See the next snippet after this.
+     *
+     * ```
+     * CryptoBladesContract.methods:
+     * 	.inGameOnlyFunds('0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335)
+     * 	.call({
+     * 		from: "0x0000000000000000000000000000000000000000"
+     * 	})
+     * ```
+     *
+     * Example of new `web3-load-balance` convention:
+     *
+     * ```
+     * runContract(
+     * 	'cryptoblades',
+     * 	'inGameOnlyFunds',
+     * 	['0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335'],
+     * 	{ form: '0x0000000000000000000000000000000000000000' }
+     * )
+     * ```
+     */
     const runContract = async (contractName, methodName, methodParameters, callParameters, options) => {
         const retryIntervalInSeconds = (options === null || options === void 0 ? void 0 : options.retryIntervalInSeconds) || retryOnRateLimitInSeconds;
         const service = await getService(retryIntervalInSeconds);
@@ -103,7 +128,14 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
         return null;
     };
     /**
-     * Only do one (1) node request to take advantage of load balancing.
+     * `NOTE` Only do one (1) node request to take advantage of
+     * load balancing.
+     *
+     * Example:
+     *
+     * ```
+     * runWeb3((web3) => web3.eth.getBlock(12345678))
+     * ```
      */
     const runWeb3 = async (callback, options) => {
         const { retryOnRateLimitInSeconds: finalRetryOnRateLimitInSeconds = retryOnRateLimitInSeconds, } = options || {};
