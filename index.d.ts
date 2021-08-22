@@ -15,6 +15,9 @@ export declare type LoadBalancedWeb3Service<ContractName extends string> = {
      * `NOTE` Only do one (1) node request to take advantage of
      * load balancing.
      *
+     * Run a contract method with this one. To have full access to
+     * a contract APIs, use `onContract`.
+     *
      * -
      *
      * Example of old `web3` convention. See the next snippet after this.
@@ -56,6 +59,41 @@ export declare type LoadBalancedWeb3Service<ContractName extends string> = {
      * ```
      */
     runWeb3: <T>(callback: (web3: Web3) => T) => Promise<T>;
+    /**
+     * `NOTE` Only do one (1) node request to take advantage of
+     * load balancing.
+     *
+     * -
+     *
+     * Example of old `web3` convention. See the next snippet after this.
+     *
+     * ```
+     * CryptoBladesContract.methods:
+     * 	.inGameOnlyFunds('0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335)
+     * 	.call({
+     * 		from: "0x0000000000000000000000000000000000000000"
+     * 	})
+     * ```
+     *
+     * -
+     *
+     * Example of new `web3-load-balance` convention:
+     *
+     * ```
+     * onContract(
+     * 	'cryptoblades',
+     * 	(contract) => contract
+     * 		.methods
+     * 		.inGameOnlyFunds('0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335)
+     * 		.call({
+     * 			from: "0x0000000000000000000000000000000000000000"
+     * 		})
+     * )
+     * ```
+     */
+    onContract: <T>(contractName: ContractName, callback: (contract: Contract) => T, options?: {
+        retryIntervalInSeconds?: number;
+    }) => Promise<T>;
 };
 export declare const createWeb3ContractsServices: <ContractName extends string>(nodesUrls: string[], contractDetailsMap: Record<ContractName, ContractInfo>) => {
     url: string;

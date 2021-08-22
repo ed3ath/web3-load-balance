@@ -107,10 +107,16 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
         const service = await getService(finalRetryOnRateLimitInSeconds);
         return callback(service.web3);
     };
+    const onContract = async (contractName, callback, options) => {
+        const { retryIntervalInSeconds: finalRetryIntervalInSeconds = retryOnRateLimitInSeconds, } = options || {};
+        const service = await getService(finalRetryIntervalInSeconds);
+        return callback(service.contracts[contractName]);
+    };
     return {
         nodeIndex: () => serviceIndex,
         runContract,
         runWeb3,
+        onContract,
     };
 };
 exports.createLoadBalancedContractsService = createLoadBalancedContractsService;
