@@ -1,0 +1,43 @@
+{
+  "name": "web3-load-balance",
+  "version": "1.0.0",
+  "description": "Run contracts with round-robin load balancing of given urls and contracts map.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jomgapuz/web3-load-balance.git"
+  },
+  "keywords": [
+    "web3",
+    "blockchain",
+    "contract",
+    "load",
+    "balance",
+    "round",
+    "robin",
+    "map",
+    "node",
+    "urls"
+  ],
+  "author": "John Emmanuel Gapuz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jomgapuz/web3-load-balance/issues"
+  },
+  "homepage": "https://github.com/jomgapuz/web3-load-balance#readme",
+  "dependencies": {
+    "web3": "^1.5.2"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.29.2",
+    "@typescript-eslint/parser": "^4.29.2",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.1",
+    "prettier": "^2.3.2",
+    "typescript": "^4.3.5"
+  }
+}
