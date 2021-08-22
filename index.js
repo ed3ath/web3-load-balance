@@ -102,9 +102,18 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
         }
         return null;
     };
+    /**
+     * Only do one (1) node request to take advantage of load balancing.
+     */
+    const runWeb3 = async (callback, options) => {
+        const { retryOnRateLimitInSeconds: finalRetryOnRateLimitInSeconds = retryOnRateLimitInSeconds, } = options || {};
+        const service = await getService(finalRetryOnRateLimitInSeconds);
+        return callback(service.web3);
+    };
     return {
         nodeIndex: () => serviceIndex,
         runContract,
+        runWeb3,
     };
 };
 exports.createLoadBalancedContractsService = createLoadBalancedContractsService;

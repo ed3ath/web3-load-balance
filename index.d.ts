@@ -31,4 +31,7 @@ export declare const createLoadBalancedContractsService: <ContractName extends s
     runContract: (contractName: ContractName, methodName: string, methodParameters?: any[] | undefined, callParameters?: Record<string, any> | undefined, options?: {
         retryIntervalInSeconds?: number | undefined;
     } | undefined) => Promise<any>;
+    runWeb3: <T>(callback: (web3: Web3) => T, options?: {
+        retryOnRateLimitInSeconds?: number | undefined;
+    } | undefined) => Promise<T>;
 };
