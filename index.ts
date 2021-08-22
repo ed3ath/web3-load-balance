@@ -10,6 +10,64 @@ export type ContractInfo = {
 	address: string
 }
 
+export type LoadBalancedWeb3Service<ContractName extends string> = {
+	/**
+	 * Current public node index.
+	 */
+	nodeIndex: () => number
+
+	/**
+	 * `NOTE` Only do one (1) node request to take advantage of
+	 * load balancing.
+	 *
+	 * -
+	 *
+	 * Example of old `web3` convention. See the next snippet after this.
+	 *
+	 * ```
+	 * CryptoBladesContract.methods:
+	 * 	.inGameOnlyFunds('0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335)
+	 * 	.call({
+	 * 		from: "0x0000000000000000000000000000000000000000"
+	 * 	})
+	 * ```
+	 *
+	 * -
+	 *
+	 * Example of new `web3-load-balance` convention:
+	 *
+	 * ```
+	 * runContract(
+	 * 	'cryptoblades',
+	 * 	'inGameOnlyFunds',
+	 * 	['0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335'],
+	 * 	{ form: '0x0000000000000000000000000000000000000000' }
+	 * )
+	 * ```
+	 */
+	runContract: (
+		contractName: ContractName,
+		methodName: string,
+		methodParameters?: any[],
+		callParameters?: Record<string, any>,
+		options?: { retryIntervalInSeconds?: number }
+	) => any
+
+	/**
+	 * `NOTE` Only do one (1) node request to take advantage of
+	 * load balancing.
+	 *
+	 * -
+	 *
+	 * Example:
+	 *
+	 * ```
+	 * runWeb3((web3) => web3.eth.getBlock(12345678))
+	 * ```
+	 */
+	runWeb3: <T>(callback: (web3: Web3) => T) => Promise<T>
+}
+
 export const createWeb3ContractsServices = <ContractName extends string>(
 	nodesUrls: string[],
 	contractDetailsMap: Record<ContractName, ContractInfo>
@@ -64,7 +122,7 @@ export const createLoadBalancedContractsService = <ContractName extends string>(
 		maxDurationOfMaxRequestsPerNodeInMinutes?: number
 		rateLimitFactor?: number
 	}
-) => {
+): LoadBalancedWeb3Service<ContractName> => {
 	const {
 		initialServiceIndex = 0,
 		initialServicesStats = [] as {
@@ -218,44 +276,7 @@ export const createLoadBalancedContractsService = <ContractName extends string>(
 
 	return {
 		nodeIndex: () => serviceIndex,
-
-		/**
-		 * `NOTE` Only do one (1) node request to take advantage of
-		 * load balancing.
-		 *
-		 * Example of old `web3` convention. See the next snippet after this.
-		 *
-		 * ```
-		 * CryptoBladesContract.methods:
-		 * 	.inGameOnlyFunds('0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335)
-		 * 	.call({
-		 * 		from: "0x0000000000000000000000000000000000000000"
-		 * 	})
-		 * ```
-		 *
-		 * Example of new `web3-load-balance` convention:
-		 *
-		 * ```
-		 * runContract(
-		 * 	'cryptoblades',
-		 * 	'inGameOnlyFunds',
-		 * 	['0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335'],
-		 * 	{ form: '0x0000000000000000000000000000000000000000' }
-		 * )
-		 * ```
-		 */
 		runContract,
-
-		/**
-		 * `NOTE` Only do one (1) node request to take advantage of
-		 * load balancing.
-		 *
-		 * Example:
-		 *
-		 * ```
-		 * runWeb3((web3) => web3.eth.getBlock(12345678))
-		 * ```
-		 */
 		runWeb3,
 	}
 }
