@@ -91,7 +91,7 @@ export declare type LoadBalancedWeb3Service<ContractName extends string> = {
      * )
      * ```
      */
-    onContract: <T>(contractName: ContractName, callback: (contract: Contract) => T, options?: {
+    onContract: <T>(contractName: ContractName, callback: (contract: Contract) => Promise<T>, options?: {
         retryIntervalInSeconds?: number;
     }) => Promise<T>;
 };

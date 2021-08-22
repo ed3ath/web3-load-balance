@@ -110,7 +110,10 @@ const createLoadBalancedContractsService = (contractsServices, options) => {
     const onContract = async (contractName, callback, options) => {
         const { retryIntervalInSeconds: finalRetryIntervalInSeconds = retryOnRateLimitInSeconds, } = options || {};
         const service = await getService(finalRetryIntervalInSeconds);
-        return callback(service.contracts[contractName]);
+        return callback(service.contracts[contractName]).catch(async () => {
+            await utils_1.sleep(retryOnErrorDelayInMillis);
+            return onContract(contractName, callback, options);
+        });
     };
     return {
         nodeIndex: () => serviceIndex,

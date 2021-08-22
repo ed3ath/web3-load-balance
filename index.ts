@@ -104,7 +104,7 @@ export type LoadBalancedWeb3Service<ContractName extends string> = {
 	 */
 	onContract: <T>(
 		contractName: ContractName,
-		callback: (contract: Contract) => T,
+		callback: (contract: Contract) => Promise<T>,
 		options?: { retryIntervalInSeconds?: number }
 	) => Promise<T>
 }
@@ -315,20 +315,25 @@ export const createLoadBalancedContractsService = <ContractName extends string>(
 		return callback(service.web3)
 	}
 
-	const onContract = async <T>(
-		contractName: ContractName,
-		callback: (contract: Contract) => T,
-		options?: { retryIntervalInSeconds?: number }
-	) => {
-		const {
-			retryIntervalInSeconds:
-				finalRetryIntervalInSeconds = retryOnRateLimitInSeconds,
-		} = options || {}
+	const onContract: LoadBalancedWeb3Service<ContractName>["onContract"] =
+		async <T>(
+			contractName: ContractName,
+			callback: (contract: Contract) => Promise<T>,
+			options?: { retryIntervalInSeconds?: number }
+		) => {
+			const {
+				retryIntervalInSeconds:
+					finalRetryIntervalInSeconds = retryOnRateLimitInSeconds,
+			} = options || {}
 
-		const service = await getService(finalRetryIntervalInSeconds)
+			const service = await getService(finalRetryIntervalInSeconds)
 
-		return callback(service.contracts[contractName])
-	}
+			return callback(service.contracts[contractName]).catch(async () => {
+				await sleep(retryOnErrorDelayInMillis)
+
+				return onContract(contractName, callback, options)
+			})
+		}
 
 	return {
 		nodeIndex: () => serviceIndex,
