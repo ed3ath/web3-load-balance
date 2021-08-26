@@ -23,7 +23,7 @@ export declare type LoadBalancedWeb3Service<ContractName extends string> = {
      * Example of old `web3` convention. See the next snippet after this.
      *
      * ```
-     * CryptoBladesContract.methods:
+     * CryptoBladesContract.methods
      * 	.inGameOnlyFunds('0xF9BDE92bF245c3CeB30bc556AE1D56E05bF56335)
      * 	.call({
      * 		from: "0x0000000000000000000000000000000000000000"
